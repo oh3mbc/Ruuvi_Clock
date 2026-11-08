@@ -24,6 +24,11 @@ The system is optimized for an ultra-clean, retro aesthetic, stripping away comp
 | **CS** | **GPIO 5** | Cable Chip Select (CS_P) — Configurable |
 | **CLK** | **GPIO 18** | SPI Clock Pulse (SCK) — Fixed Hardware VSPI |
 
+### 🔄 Physical Mounting & Software 180-Degree Rotation
+To accommodate custom enclosure restrictions where the LED matrix panel is physically mounted upside down, the display orientation is corrected entirely through software drivers inside the `setup()` block. 
+
+By applying dual zone inversion flags (`PA_FLIP_UD` and `PA_FLIP_LR`), the character pixel columns and rows are mirrored vertically and horizontally. This achieves a perfect **180-degree electronic rotation** without requiring case modifications or physical wire re-routing.
+
 ---
 
 ## 3. Firmware Architecture & Software Mechanics
