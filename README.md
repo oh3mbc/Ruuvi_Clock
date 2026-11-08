@@ -1,7 +1,11 @@
-# Retro Ruuvi Air Display Clock - Project Documentation
+# Retro Ruuvi Air & RuuviTag Display Clock - Project Documentation
 
 ## 1. Project Overview
-This project transforms an **ESP32 microcontroller (NodeMCU-32S)** into an automated environmental tracking dashboard clock using a **4-in-1 MAX7219 LED Dot Matrix display panel**. The clock synchronizes accurate time over the internet via Wi-Fi and gathers high-precision local environmental metrics from a **Ruuvi Air** sensor beacon using Bluetooth Low Energy (BLE).
+This project transforms an **ESP32 microcontroller (NodeMCU-32S)** into an automated environmental tracking dashboard clock using a **4-in-1 MAX7219 LED Dot Matrix display panel**. The clock synchronizes accurate time over the internet via Wi-Fi and gathers high-precision local environmental metrics from Bluetooth Low Energy (BLE) sensor beacons.
+
+The firmware architecture features universal backward compatibility, auto-detecting and decoding incoming payloads seamlessly across the entire Ruuvi ecosystem:
+* **Ruuvi Air (Data Format 6):** Natively extracts Temperature, Humidity, Pressure, Particulate Matter (PM2.5), and Carbon Dioxide (CO2).
+* **Regular RuuviTags (Data Formats 3 & 5 / RAWv1 & RAWv2):** Natively extracts Temperature, Humidity, and Barometric Pressure.
 
 The system is optimized for an ultra-clean, retro aesthetic, stripping away complex scrolling animations in favor of static, **5-character labeled layouts** utilizing the crisp, native 5x7 hardware font.
 
@@ -11,7 +15,7 @@ The system is optimized for an ultra-clean, retro aesthetic, stripping away comp
 
 ### Hardware Components
 * **Microcontroller:** NodeMCU-32S (ESP32-WROOM-32 Core)
-* **Environmental Sensor:** Ruuvi Air broadcasting Data Format 6 (Temperature, Humidity, Pressure, PM2.5, and CO2).
+* **Environmental Sensor:** Ruuvi Air (Format 6) or standard RuuviTag (Format 3/5).
 * **Matrix Display Panel:** 4-in-1 MAX7219 Dot Matrix Module (32x8 Pixel Grid arranged in 4 zones).
 
 ### Wiring Configuration Matrix
@@ -44,14 +48,16 @@ The code is designed as a standalone state machine using non-blocking asynchrono
 
 ### B. Network Time & Data Stream Optimization
 * Once a profile is verified, the system wakes the Wi-Fi card to fetch local time coordinates from an online time provider (`fi.pool.ntp.org`) over NTP, calculates regional shifts via timezone configurations (`EET-2EEST`), and instantly puts the Wi-Fi modem completely to sleep (`WIFI_OFF`) to prevent network background threads from interfering with the BLE radio. Time synchronization triggers autonomously once every 2 hours.
-* The BLE engine wakes up every 30 seconds to poll for the registered Ruuvi MAC address. When a matching target packet is captured, it decodes Data Format 6 payload arrays cleanly into specific memory allocation variables.
+* The BLE engine wakes up every 30 seconds to poll for the registered Ruuvi MAC address. When a matching packet is caught, an internal payload router inspects the format byte:
+  * **If Format 6 arrives:** It parses the expanded data stream to populate all 5 weather values including PM2.5 and CO2 variables.
+  * **If Format 3 or 5 arrives:** It handles core metric decoders cleanly. Advanced slots fall back safely to display explicit `NO-PM` or `NO-CO2` layout text blocks on unsupported hardware variants.
 
 ### C. Visual Frame Rendering & Representation Map
 Screens cycle smoothly every 4 seconds. The metrics are truncated tightly down to a maximum of 5 flat character arrays to fit perfectly within the boundaries of the 4-panel module:
 
 * 🕒 **Time (`17:46`):** Standard 24-hour clock. The colon symbol toggles parity dynamically using millisecond modulos, causing it to pulse once per second.
 * 📅 **Date (`08.11`):** Two-digit numeric representation of Day and Month.
-* 🌡️ **Temperature (`22.4C`):** High-precision CO2-sensor matched decimal output with a trailing **C** identifier.
+* 🌡️ **Temperature (`22.4C`):** High-precision integer decimal output with a trailing **C** identifier.
 * 💧 **Humidity (`45.2H`):** Local humidity metric with a trailing **H** identifier.
 * 🎈 **Pressure (`1013P`):** Local barometric whole integer metric with a trailing **P** identifier.
 * 💨 **PM2.5 (`12.5M`):** Particulate Matter levels labeled with an **M** (Matter) identifier.
